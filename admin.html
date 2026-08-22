@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Admin Panel · Sweet Crumbs Bakery</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="admin-body">
+
+  <header class="header">
+    <div class="container header-inner">
+      <a href="/" class="logo">Sweet<span>Crumbs</span><small class="adm-tag">Admin</small></a>
+      <nav class="nav-links">
+        <a href="/">View Site</a>
+        <button class="btn ghost sm" id="logoutBtn" hidden>Logout</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container admin-main">
+
+    <!-- Shown when Supabase keys are missing -->
+    <section class="card setup-box" id="setupBox" hidden>
+      <h2>Connect Supabase to continue</h2>
+      <ol>
+        <li>Create a free project at <strong>supabase.com</strong>.</li>
+        <li>Run <strong>supabase-setup.sql</strong> in the SQL Editor.</li>
+        <li>Paste the Project URL &amp; anon key into <strong>supabase-config.js</strong>.</li>
+        <li>Create your admin login (see <strong>ADMIN-SETUP.md</strong>, step 5).</li>
+      </ol>
+    </section>
+
+    <!-- Login -->
+    <section class="login-wrap" id="loginWrap" hidden>
+      <form class="card login-card" id="loginForm">
+        <h2>Admin Login</h2>
+        <label>Email
+          <input class="input" type="email" id="loginEmail" required autocomplete="username" />
+        </label>
+        <label>Password
+          <input class="input" type="password" id="loginPass" required autocomplete="current-password" />
+        </label>
+        <button class="btn primary block" type="submit">Sign In</button>
+        <p class="form-err" id="loginErr" hidden></p>
+      </form>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="dash" hidden>
+      <div class="dash-toolbar">
+        <h2>Cakes <span class="count" id="cakeCount"></span></h2>
+        <button class="btn primary" id="addBtn">+ Add New Cake</button>
+      </div>
+
+      <!-- Add / edit form -->
+      <form class="card cake-form" id="cakeForm" hidden>
+        <h3 id="formTitle">Add New Cake</h3>
+        <div class="form-grid">
+          <label class="span2">Cake Name
+            <input class="input" id="fName" required maxlength="60" placeholder="e.g. Chocolate Truffle Drip Cake" />
+          </label>
+          <label>Price for 500g (₹)
+            <input class="input" type="number" id="fBase" min="99" required placeholder="549" />
+          </label>
+          <label>MRP — optional (₹)
+            <input class="input" type="number" id="fMrp" min="0" placeholder="shows as strike-through" />
+          </label>
+          <label>Rating (1–5)
+            <input class="input" type="number" id="fRating" min="1" max="5" step="0.1" value="4.8" />
+          </label>
+          <label>Reviews count
+            <input class="input" type="number" id="fReviews" min="0" value="0" />
+          </label>
+          <fieldset class="cats-set span2">
+            <legend>Categories</legend>
+            <div id="fCats"></div>
+          </fieldset>
+          <label>Badge
+            <select class="input" id="fBadge">
+              <option value="">None</option>
+              <option>Bestseller</option>
+              <option>Eggless</option>
+              <option>New Arrival</option>
+              <option>Theme</option>
+              <option>Personalised</option>
+            </select>
+          </label>
+          <label class="chk"><input type="checkbox" id="fAvail" checked /> Available on site</label>
+          <div class="span2">
+            <label>Photo (jpg / png, up to 4 MB)</label>
+            <input class="input file" type="file" id="fImg" accept="image/*" />
+            <img class="img-preview" id="fPreview" alt="" hidden />
+          </div>
+          <p class="kg-hint span2">1kg price is calculated automatically: <strong id="fKg">—</strong></p>
+        </div>
+        <div class="form-actions">
+          <button class="btn primary" type="submit" id="saveBtn">Save Cake</button>
+          <button class="btn ghost" type="button" id="cancelBtn">Cancel</button>
+        </div>
+      </form>
+
+      <div class="table-wrap">
+        <table class="dash-table">
+          <thead>
+            <tr>
+              <th>Photo</th><th>Name</th><th>500g ₹</th><th>MRP ₹</th><th>Live</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
