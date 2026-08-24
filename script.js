@@ -26,7 +26,10 @@ const DEFAULT_CAKES = [
 ];
 
 /* Live catalogue replaces the built-in list once loaded */
-let CAKES = DEFAULT_CAKES;
+let CAKES = DEFAULT_CAKES.map((c) => ({
+  ...c,
+  weights: normWeights(c, c.weights),
+}));
 
 const state = {
   cat: "all",
@@ -49,20 +52,47 @@ function kgPrice(base) {
   return Math.round((base * 1.85) / 50) * 50;
 }
 
-function priceOf(cake, weight) {
-  return weight === "1000" ? kgPrice(cake.base) : cake.base;
+/* Build the default 500g + 1kg list from a base price (offline fallback) */
+function pctOff(price, mrp) {
+  return mrp && mrp > price ? Math.round(((mrp - price) / mrp) * 100) : null;
 }
 
-function mrpOf(cake, weight) {
-  if (!cake.mrp) return null;
-  return weight === "1000" ? kgPrice(cake.mrp) : cake.mrp;
+function defaultWeights(cake) {
+  return [
+    { w: "500g", price: cake.base, off: pctOff(cake.base, cake.mrp) },
+    { w: "1kg", price: kgPrice(cake.base), off: pctOff(kgPrice(cake.base), cake.mrp ? kgPrice(cake.mrp) : null) },
+  ];
 }
 
-function waLink(cake, weight) {
-  const price = priceOf(cake, weight);
+/* keep only sane manual discounts: whole number between 1 and 95 */
+function cleanOff(v) {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 1 && n <= 95 ? Math.round(n) : null;
+}
+
+/* Normalise whatever came from the DB into [{w, price, off}] */
+function normWeights(cake, raw) {
+  const list = (Array.isArray(raw) ? raw : [])
+    .map((e) => ({
+      w: String(e?.w ?? "").trim(),
+      price: Number(e?.price),
+      off: cleanOff(e?.off),
+    }))
+    .filter((e) => e.w && Number.isFinite(e.price) && e.price > 0);
+  return list.length ? list : defaultWeights(cake);
+}
+
+function entryOf(cake, label) {
+  return (
+    cake.weights.find((e) => e.w === label) || cake.weights[0]
+  );
+}
+
+function waLink(cake, entry) {
   const imgUrl = cake.img.startsWith("http") ? cake.img : `${SITE_URL}/${cake.img}`;
   const text = encodeURIComponent(
-    `Hi Sweet Crumbs! I want to order:\n\n🎂 ${cake.name} (${weight === "1000" ? "1kg" : "500g"}) — ${fmt(price)}\n\nPhoto: ${imgUrl}\n\nPlease confirm availability.`
+    `Hi Sweet Crumbs! I want to order:\n\n🎂 ${cake.name} (${entry.w}) — ${fmt(entry.price)}\n\nPhoto: ${imgUrl}\n\nPlease confirm availability.`
   );
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${text}`;
 }
@@ -71,8 +101,10 @@ function visibleCakes() {
   let list = CAKES.filter(
     (c) => state.cat === "all" || c.cats.includes(state.cat)
   );
-  if (state.sort === "plh") list = [...list].sort((a, b) => a.base - b.base);
-  if (state.sort === "phl") list = [...list].sort((a, b) => b.base - a.base);
+  /* sort by the price currently shown (selected size), not the hidden base */
+  const shownPrice = (c) => entryOf(c, state.weights[c.id]).price;
+  if (state.sort === "plh") list = [...list].sort((a, b) => shownPrice(a) - shownPrice(b));
+  if (state.sort === "phl") list = [...list].sort((a, b) => shownPrice(b) - shownPrice(a));
   if (state.sort === "rating")
     list = [...list].sort((a, b) => b.rating - a.rating);
   return list;
@@ -90,10 +122,8 @@ function render() {
   }
 
   list.forEach((cake) => {
-    const weight = state.weights[cake.id] || "500";
-    const price = priceOf(cake, weight);
-    const mrp = mrpOf(cake, weight);
-    const off = mrp ? Math.round(((mrp - price) / mrp) * 100) : null;
+    const entry = entryOf(cake, state.weights[cake.id]);
+    const off = entry.off;
 
     const card = document.createElement("article");
     card.className = "card";
@@ -125,15 +155,20 @@ function render() {
           <span class="rb-count">(${esc(cake.reviews)} Reviews)</span>
         </div>
         <div class="wchips">
-          <button type="button" class="wchip ${weight === "500" ? "active" : ""}" data-w="500">500g</button>
-          <button type="button" class="wchip ${weight === "1000" ? "active" : ""}" data-w="1000">1kg</button>
+          ${cake.weights
+            .map(
+              (e) =>
+                `<button type="button" class="wchip ${
+                  e.w === entry.w ? "active" : ""
+                }" data-w="${esc(e.w)}">${esc(e.w)}</button>`
+            )
+            .join("")}
         </div>
         <div class="price-row">
-          <span class="price">${fmt(price)}</span>
-          ${mrp ? `<span class="mrp">${fmt(mrp)}</span>` : ""}
+          <span class="price">${fmt(entry.price)}</span>
           ${off ? `<span class="offpct">${off}% OFF</span>` : ""}
         </div>
-        <a class="order-btn" href="${esc(waLink(cake, weight))}" target="_blank" rel="noopener">Order Now</a>
+        <a class="order-btn" href="${esc(waLink(cake, entry))}" target="_blank" rel="noopener">Order Now</a>
       </div>`;
 
     grid.appendChild(card);
@@ -148,29 +183,16 @@ grid.addEventListener("click", (e) => {
   if (!chip) return;
   const cardEl = chip.closest(".card");
   const cake = CAKES.find((c) => c.id === Number(cardEl.dataset.id));
-  const weight = chip.dataset.w;
-  state.weights[cake.id] = weight;
+  const entry = entryOf(cake, chip.dataset.w);
+  state.weights[cake.id] = entry.w;
 
   cardEl.querySelectorAll(".wchip").forEach((b) => {
-    b.classList.toggle("active", b.dataset.w === weight);
+    b.classList.toggle("active", b.dataset.w === entry.w);
   });
 
-  const price = priceOf(cake, weight);
-  const mrp = mrpOf(cake, weight);
-  const off = mrp ? Math.round(((mrp - price) / mrp) * 100) : null;
+  const off = entry.off;
 
-  cardEl.querySelector(".price").textContent = fmt(price);
-  const mrpEl = cardEl.querySelector(".mrp");
-  if (mrp) {
-    if (!mrpEl) {
-      const s = document.createElement("span");
-      s.className = "mrp";
-      cardEl.querySelector(".price-row").appendChild(s);
-    }
-    cardEl.querySelector(".mrp").textContent = fmt(mrp);
-  } else if (mrpEl) {
-    mrpEl.remove();
-  }
+  cardEl.querySelector(".price").textContent = fmt(entry.price);
   const offEl = cardEl.querySelector(".offpct");
   if (off) {
     if (!offEl) {
@@ -183,11 +205,12 @@ grid.addEventListener("click", (e) => {
     offEl.remove();
   }
   const ob = cardEl.querySelector(".order-btn");
-  ob.href = waLink(cake, weight);
+  ob.href = waLink(cake, entry);
 
   /* keep discount bubble on image in sync */
   const offBadge = cardEl.querySelector(".off-badge");
-  if (offBadge) offBadge.textContent = `${off ?? 0}% OFF`;
+  if (off && offBadge) offBadge.textContent = `${off}% OFF`;
+  else if (!off && offBadge) offBadge.remove();
 });
 
 /* Category chips */
@@ -243,17 +266,20 @@ async function loadCakesFromCloud() {
       .order("sort_order")
       .order("id");
     if (error || !data || data.length === 0) return;
-    CAKES = data.map((r) => ({
-      id: r.id,
-      img: r.img,
-      name: r.name,
-      base: Number(r.base),
-      mrp: r.mrp ? Number(r.mrp) : null,
-      rating: String(r.rating),
-      reviews: String(r.reviews),
-      cats: r.cats || [],
-      badge: r.badge || null,
-    }));
+    CAKES = data.map((r) => {
+      const cake = {
+        id: r.id,
+        img: r.img,
+        name: r.name,
+        base: Number(r.base),
+        mrp: r.mrp ? Number(r.mrp) : null,
+        rating: String(r.rating),
+        reviews: String(r.reviews),
+        cats: r.cats || [],
+        badge: r.badge || null,
+      };
+      return { ...cake, weights: normWeights(cake, r.weights) };
+    });
   } catch (_) {
     /* offline / blocked — keep built-in cakes */
   }

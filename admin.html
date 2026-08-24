@@ -61,12 +61,11 @@
           <label class="span2">Cake Name
             <input class="input" id="fName" required maxlength="60" placeholder="e.g. Chocolate Truffle Drip Cake" />
           </label>
-          <label>Price for 500g (₹)
-            <input class="input" type="number" id="fBase" min="99" required placeholder="549" />
-          </label>
-          <label>MRP — optional (₹)
-            <input class="input" type="number" id="fMrp" min="0" placeholder="shows as strike-through" />
-          </label>
+          <fieldset class="cats-set span2">
+            <legend>Sizes &amp; prices</legend>
+            <div id="fWeights"></div>
+            <button class="btn ghost sm" type="button" id="addWpRow" style="margin-top:8px;">+ Add size</button>
+          </fieldset>
           <label>Rating (1–5)
             <input class="input" type="number" id="fRating" min="1" max="5" step="0.1" value="4.8" />
           </label>
@@ -89,11 +88,10 @@
           </label>
           <label class="chk"><input type="checkbox" id="fAvail" checked /> Available on site</label>
           <div class="span2">
-            <label>Photo (jpg / png, up to 4 MB)</label>
+            <label>Photo (jpg / png, up to 10 MB)</label>
             <input class="input file" type="file" id="fImg" accept="image/*" />
             <img class="img-preview" id="fPreview" alt="" hidden />
           </div>
-          <p class="kg-hint span2">1kg price is calculated automatically: <strong id="fKg">—</strong></p>
         </div>
         <div class="form-actions">
           <button class="btn primary" type="submit" id="saveBtn">Save Cake</button>
@@ -105,7 +103,7 @@
         <table class="dash-table">
           <thead>
             <tr>
-              <th>Photo</th><th>Name</th><th>500g ₹</th><th>MRP ₹</th><th>Live</th><th>Actions</th>
+              <th>Photo</th><th>Name</th><th>Sizes &amp; prices (₹)</th><th>Live</th><th>Actions</th>
             </tr>
           </thead>
           <tbody id="rows"></tbody>

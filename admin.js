@@ -101,11 +101,25 @@ async function loadCakes() {
   renderTable();
 }
 
+/* sizes list for a cake (falls back to legacy base price as 500g) */
+function cakeWeights(cake) {
+  return cake.weights?.length
+    ? cake.weights
+    : [{
+        w: "500g",
+        price: cake.base,
+        off: cake.mrp && cake.mrp > cake.base
+          ? Math.round(((cake.mrp - cake.base) / cake.mrp) * 100)
+          : null,
+      }];
+}
+
 function renderTable() {
   $("#cakeCount").textContent = `(${cakes.length})`;
   $("#rows").innerHTML = cakes
-    .map(
-      (c) => `
+    .map((c) => {
+      const weights = cakeWeights(c);
+      return `
     <tr data-id="${c.id}">
       <td><img class="thumb" src="${esc(c.img)}" alt="" loading="lazy" /></td>
       <td>
@@ -115,34 +129,46 @@ function renderTable() {
           .map(esc)
           .join(" · ") || "—"}</div>
       </td>
-      <td><input class="input num p-base" type="number" min="99" value="${c.base}" /></td>
-      <td><input class="input num p-mrp" type="number" min="0" value="${c.mrp ?? ""}" placeholder="—" /></td>
+      <td class="sizes-cell">
+        ${weights
+          .map(
+            (e) => `
+          <label class="size-edit">
+            <span>${esc(e.w)}</span>
+            <input class="input num sz-price" type="number" min="1"
+              data-w="${esc(e.w)}" value="${e.price}" />
+          </label>`
+          )
+          .join("")}
+      </td>
       <td><input class="avail" type="checkbox" ${c.available ? "checked" : ""} aria-label="Available" /></td>
       <td class="row-actions">
         <button type="button" class="btn ghost sm" data-act="edit">Edit</button>
         <button type="button" class="btn danger sm" data-act="del">Delete</button>
       </td>
-    </tr>`
-    )
+    </tr>`;
+    })
     .join("");
 }
 
-/* inline price + availability edits */
+/* inline size-price + availability edits */
 $("#rows").addEventListener("change", async (e) => {
   const tr = e.target.closest("tr");
   if (!tr) return;
   const id = Number(tr.dataset.id);
   const cake = cakes.find((x) => x.id === id);
 
-  if (e.target.classList.contains("p-base") || e.target.classList.contains("p-mrp")) {
-    const base = Number(tr.querySelector(".p-base").value);
-    const mrpRaw = tr.querySelector(".p-mrp").value;
-    const mrp = mrpRaw === "" ? null : Number(mrpRaw);
-    if (!base || base < 99) return toast("Price must be at least ₹99", false);
-    if (mrp && mrp <= base) return toast("MRP must be higher than the price", false);
-    const { error } = await sb.from("cakes").update({ base, mrp }).eq("id", id);
+  if (e.target.classList.contains("sz-price")) {
+    const w = e.target.dataset.w;
+    const price = Number(e.target.value);
+    if (!price || price <= 0) return toast("Enter a valid price", false);
+    const weights = cakeWeights(cake).map(
+      (x) => (x.w === w ? { ...x, price } : x)
+    );
+    const base = Math.min(...weights.map((x) => x.price));
+    const { error } = await sb.from("cakes").update({ weights, base }).eq("id", id);
     if (error) return toast(error.message, false);
-    Object.assign(cake, { base, mrp });
+    Object.assign(cake, { weights, base });
     toast("Price saved ✓");
   } else if (e.target.classList.contains("avail")) {
     const available = e.target.checked;
@@ -177,6 +203,56 @@ async function removeCake(cake) {
   loadCakes();
 }
 
+/* ---- sizes & prices editor ---- */
+function wpAddRow(entry = {}) {
+  const row = document.createElement("div");
+  row.className = "wp-row";
+  row.innerHTML = `
+    <input class="input wp-w" placeholder="Size e.g. 500g" maxlength="12"
+      value="${esc(entry.w ?? "")}" />
+    <input class="input num wp-price" type="number" min="1" placeholder="Price ₹"
+      value="${entry.price ?? ""}" />
+    <input class="input num wp-off" type="number" min="0" max="95" placeholder="Discount %"
+      value="${entry.off ?? ""}" />
+    <button class="btn danger sm wp-del" type="button" title="Remove size">✕</button>`;
+  $("#fWeights").appendChild(row);
+}
+
+$("#fWeights").addEventListener("click", (e) => {
+  const del = e.target.closest(".wp-del");
+  if (!del) return;
+  if ($("#fWeights").children.length > 1) del.closest(".wp-row").remove();
+  else toast("A cake needs at least one size", false);
+});
+
+$("#addWpRow").addEventListener("click", () => wpAddRow());
+
+function collectWeights() {
+  const cleanOff = (v) => {
+    if (v == null || v === "") return null;
+    const n = Number(v);
+    return Number.isFinite(n) && n >= 1 && n <= 95 ? Math.round(n) : null;
+  };
+  return [...$("#fWeights").children]
+    .map((row) => ({
+      w: row.querySelector(".wp-w").value.trim(),
+      price: Number(row.querySelector(".wp-price").value),
+      off: cleanOff(row.querySelector(".wp-off").value),
+    }));
+}
+
+function validateWeights(weights) {
+  if (!weights.length) return "Add at least one size";
+  const seen = new Set();
+  for (const e of weights) {
+    if (!e.w) return "Every size needs a name (e.g. 500g)";
+    if (!e.price || e.price <= 0) return `Enter a price for ${e.w}`;
+    if (seen.has(e.w.toLowerCase())) return `Size "${e.w}" is listed twice`;
+    seen.add(e.w.toLowerCase());
+  }
+  return null;
+}
+
 /* ---- add / edit form ---- */
 function buildCatCheckboxes() {
   $("#fCats").innerHTML = CATS.map(
@@ -190,8 +266,6 @@ function openForm(cake) {
 
   $("#formTitle").textContent = cake ? `Edit — ${cake.name}` : "Add New Cake";
   $("#fName").value = cake?.name || "";
-  $("#fBase").value = cake?.base ?? "";
-  $("#fMrp").value = cake?.mrp ?? "";
   $("#fRating").value = cake?.rating ?? 4.8;
   $("#fReviews").value = cake?.reviews ?? 0;
   $("#fBadge").value = cake?.badge || "";
@@ -199,6 +273,14 @@ function openForm(cake) {
   document.querySelectorAll("#fCats input").forEach((cb) => {
     cb.checked = cake ? (cake.cats || []).includes(cb.value) : false;
   });
+
+  const weights = cake?.weights?.length
+    ? cake.weights
+    : cake
+      ? cakeWeights(cake)
+      : [{ w: "500g", price: "", off: "" }];
+  $("#fWeights").innerHTML = "";
+  weights.forEach(wpAddRow);
 
   const prev = $("#fPreview");
   if (cake?.img) {
@@ -209,10 +291,9 @@ function openForm(cake) {
     prev.removeAttribute("src");
   }
 
-  updateKgHint();
   $("#cakeForm").hidden = false;
   $("#addBtn").disabled = true;
-  $("#cakeForm").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("#cakeForm").scrollIntoView?.({ behavior: "smooth", block: "start" });
 }
 
 function closeForm() {
@@ -226,15 +307,6 @@ function closeForm() {
 $("#addBtn").addEventListener("click", () => openForm(null));
 $("#cancelBtn").addEventListener("click", closeForm);
 
-function kgPrice(n) {
-  return Math.round((n * 1.85) / 50) * 50;
-}
-function updateKgHint() {
-  const b = Number($("#fBase").value);
-  $("#fKg").textContent = b > 0 ? "₹" + kgPrice(b).toLocaleString("en-IN") : "—";
-}
-$("#fBase").addEventListener("input", updateKgHint);
-
 $("#fImg").addEventListener("change", () => {
   const file = $("#fImg").files[0];
   if (!file) return;
@@ -243,8 +315,8 @@ $("#fImg").addEventListener("change", () => {
     $("#fImg").value = "";
     return;
   }
-  if (file.size > 4 * 1024 * 1024) {
-    toast("Image is larger than 4 MB — please compress it", false);
+  if (file.size > 10 * 1024 * 1024) {
+    toast("Image is larger than 10 MB — please compress it", false);
     $("#fImg").value = "";
     return;
   }
@@ -269,9 +341,6 @@ $("#cakeForm").addEventListener("submit", async (e) => {
   e.preventDefault();
 
   const name = $("#fName").value.trim();
-  const base = Number($("#fBase").value);
-  const mrpRaw = $("#fMrp").value;
-  const mrp = mrpRaw === "" ? null : Number(mrpRaw);
   const rating = Math.min(5, Math.max(1, Number($("#fRating").value) || 4.8));
   const reviews = Math.max(0, Number($("#fReviews").value) || 0);
   const badge = $("#fBadge").value || null;
@@ -279,10 +348,12 @@ $("#cakeForm").addEventListener("submit", async (e) => {
   const cats = [...document.querySelectorAll("#fCats input:checked")].map(
     (cb) => cb.value
   );
+  const weights = collectWeights();
 
   if (!name) return toast("Please enter a cake name", false);
-  if (!base || base < 99) return toast("Price must be at least ₹99", false);
-  if (mrp && mrp <= base) return toast("MRP must be higher than the price", false);
+  const wErr = validateWeights(weights);
+  if (wErr) return toast(wErr, false);
+  const base = Math.min(...weights.map((e) => e.price));
 
   const btn = $("#saveBtn");
   btn.disabled = true;
@@ -293,7 +364,7 @@ $("#cakeForm").addEventListener("submit", async (e) => {
     if (pendingFile) img = await uploadImage(pendingFile);
     if (!img) throw new Error("Please choose a photo for the cake");
 
-    const rec = { name, base, mrp, rating, reviews, cats, badge, available };
+    const rec = { name, base, mrp: null, weights, rating, reviews, cats, badge, available };
     const { error } = editingId
       ? await sb.from("cakes").update(rec).eq("id", editingId)
       : await sb.from("cakes").insert({

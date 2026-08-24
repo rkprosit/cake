@@ -12,6 +12,8 @@ Pick any name (e.g. `sweet-crumbs`), a database password, and a region near Mumb
 In your project: **SQL Editor** → **New query** → paste the entire contents of
 `supabase-setup.sql` (included in this folder) → **Run**.
 
+Then do the same with `supabase-weights.sql` (adds the custom sizes/prices column and fills in your current 500g + 1kg prices).
+
 This creates the `cakes` table, security rules, an image bucket, and pre-loads all 21 current cakes with their prices.
 
 ### 3. Allow admin logins only
@@ -57,7 +59,17 @@ Log in once — you stay signed in on that device.
 | Edit a cake | **Edit** button in its row |
 | Delete a cake | **Delete** button (asks for confirmation, removes photo too) |
 
-Prices are for 500g. The 1kg price shown on the site is always auto-calculated (`base × 1.85`, rounded to ₹50), so you never set it twice.
+## Sizes & prices (custom weights)
+
+Each cake has its own list of sizes. In the add/edit form under **Sizes & prices**:
+
+1. Type any size you want (e.g. `500g`, `750g`, `1kg`, `2 pounds`) and its price.
+2. Optionally add a **Discount %** — it shows as a "% OFF" badge on that size.
+3. Click **+ Add size** for more rows; ✕ removes a row.
+
+The site shows one chip per size on the cake card, each with its own price and discount. The cheapest size is used for "sort by price".
+
+You can also quickly fix just a price in the table: every size has its own ₹ box there.
 
 ## Notes
 

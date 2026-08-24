@@ -418,12 +418,6 @@ body {
   color: var(--ink);
 }
 
-.mrp {
-  color: var(--muted);
-  text-decoration: line-through;
-  font-size: 0.85rem;
-}
-
 .offpct {
   color: var(--green);
   font-weight: 800;
@@ -654,6 +648,11 @@ body {
   transition: background 0.2s, transform 0.2s;
 }
 
+.socials a svg {
+  width: auto;
+  height: 18px;
+}
+
 .socials a:hover {
   background: var(--brand);
   transform: translateY(-3px);
@@ -820,10 +819,6 @@ textarea {
 
   .price {
     font-size: 0.98rem;
-  }
-
-  .mrp {
-    font-size: 0.72rem;
   }
 
   .offpct {
@@ -1205,10 +1200,37 @@ textarea {
   margin-top: 10px;
 }
 
-.kg-hint {
-  font-size: 0.85rem;
-  color: var(--muted);
-  margin: 0;
+/* sizes & prices editor */
+.wp-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 1.2fr) minmax(90px, 1fr) minmax(90px, 1fr) auto;
+  gap: 8px;
+}
+
+.wp-row + .wp-row {
+  margin-top: 8px;
+}
+
+.wp-del {
+  align-self: stretch;
+  padding: 7px 11px;
+}
+
+.sizes-cell {
+  white-space: nowrap;
+}
+
+.size-edit {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  margin-right: 12px;
+}
+
+.size-edit span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #666;
 }
 
 .form-actions {
@@ -1315,5 +1337,13 @@ textarea {
 
   .dash-toolbar .btn {
     width: 100%;
+  }
+
+  .wp-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .wp-del {
+    justify-self: start;
   }
 }

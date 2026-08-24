@@ -1,6 +1,6 @@
 # Sweet Crumbs Bakery — Online Cake Ordering
 
-A fast, mobile-first cake ordering website for **Sweet Crumbs Bakery**, Bengaluru. Customers browse the catalogue and order directly through **WhatsApp** — no cart, no payment gateway, no friction.
+A fast, mobile-first cake ordering website for **Sweet Crumbs Bakery**, Hooghly. Customers browse the catalogue and order directly through **WhatsApp** — no cart, no payment gateway, no friction.
 
 **Live site:** https://cake-two-nu.vercel.app
 **Admin panel:** https://cake-two-nu.vercel.app/admin.html
