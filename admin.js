@@ -326,12 +326,27 @@ $("#fImg").addEventListener("change", () => {
   prev.hidden = false;
 });
 
+function friendlyError(err) {
+  const m = err?.message || String(err || "Something went wrong");
+  if (/row-level security|AccessDenied/i.test(m))
+    return "Upload blocked by storage security rules. Open the Supabase SQL Editor and run supabase-storage-fix.sql, then try again.";
+  if (/not.?found/i.test(m))
+    return "Storage bucket missing. Open the Supabase SQL Editor and run supabase-storage-fix.sql, then try again.";
+  if (/exceeded|too large/i.test(m))
+    return "Image is too large for Supabase's limit — please compress it";
+  return m;
+}
+
 async function uploadImage(file) {
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   const path = `cake-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
   const { error } = await sb.storage
     .from("cake-images")
-    .upload(path, file, { cacheControl: "3600", upsert: false });
+    .upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type || "image/jpeg",
+    });
   if (error) throw error;
   const { data } = sb.storage.from("cake-images").getPublicUrl(path);
   return data.publicUrl;
@@ -364,7 +379,8 @@ $("#cakeForm").addEventListener("submit", async (e) => {
     if (pendingFile) img = await uploadImage(pendingFile);
     if (!img) throw new Error("Please choose a photo for the cake");
 
-    const rec = { name, base, mrp: null, weights, rating, reviews, cats, badge, available };
+    const existingCake = editingId ? cakes.find((c) => c.id === editingId) : null;
+    const rec = { name, img, base, mrp: existingCake?.mrp ?? null, weights, rating, reviews, cats, badge, available };
     const { error } = editingId
       ? await sb.from("cakes").update(rec).eq("id", editingId)
       : await sb.from("cakes").insert({
@@ -377,7 +393,8 @@ $("#cakeForm").addEventListener("submit", async (e) => {
     closeForm();
     await loadCakes();
   } catch (err) {
-    toast(err.message, false);
+    console.error("Save failed:", err);
+    toast(friendlyError(err), false);
   } finally {
     btn.disabled = false;
     btn.textContent = "Save Cake";

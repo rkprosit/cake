@@ -280,9 +280,10 @@ async function loadCakesFromCloud() {
       };
       return { ...cake, weights: normWeights(cake, r.weights) };
     });
-  } catch (_) {
-    /* offline / blocked — keep built-in cakes */
+  } catch (e) {
+    console.error("Failed to load cakes from Supabase:", e);
   }
 }
 
+render();
 loadCakesFromCloud().then(render);

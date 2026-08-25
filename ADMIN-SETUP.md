@@ -71,6 +71,11 @@ The site shows one chip per size on the cake card, each with its own price and d
 
 You can also quickly fix just a price in the table: every size has its own ₹ box there.
 
+## Troubleshooting
+
+**Photo upload fails with "new row violates row-level security policy"**
+Open **SQL Editor** in Supabase and run `supabase-storage-fix.sql` once. It repairs the image bucket's security rules, then uploads work again.
+
 ## Notes
 
 - The anon key in `supabase-config.js` is safe to expose — write access requires your login, enforced server-side by row-level security.
