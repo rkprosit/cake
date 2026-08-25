@@ -381,7 +381,7 @@ $("#cakeForm").addEventListener("submit", async (e) => {
 
     const existingCake = editingId ? cakes.find((c) => c.id === editingId) : null;
     const rec = { name, img, base, mrp: existingCake?.mrp ?? null, weights, rating, reviews, cats, badge, available };
-    console.log("DEBUG: rec being sent:", JSON.stringify(rec));
+    console.log("v3-rec:", Object.keys(rec).join(","), "img_type:", typeof img, "img_val:", String(img).slice(0, 80));
     const { error } = editingId
       ? await sb.from("cakes").update(rec).eq("id", editingId)
       : await sb.from("cakes").insert({
