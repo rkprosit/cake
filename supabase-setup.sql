@@ -1,5 +1,5 @@
 -- ============================================================
--- Sweet Crumbs Bakery — Supabase setup
+-- Shweta's Sweet Atelier — Supabase setup
 -- Run this ONCE in: Supabase Dashboard → SQL Editor → New query
 -- ============================================================
 

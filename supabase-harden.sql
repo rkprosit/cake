@@ -1,5 +1,5 @@
 -- ============================================================
--- Sweet Crumbs — hardening pass (run ONCE in Supabase SQL Editor)
+-- Shweta's Sweet Atelier — hardening pass (run ONCE in Supabase SQL Editor)
 -- Adds database-level validation so bad data can never be
 -- written through any client, even a compromised one.
 -- Safe to re-run (drops & recreates each constraint).

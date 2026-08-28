@@ -1,5 +1,5 @@
 -- ============================================================
--- Sweet Crumbs — FIX for "new row violates row-level security
+-- Shweta's Sweet Atelier — FIX for "new row violates row-level security
 -- policy" when uploading cake photos in the admin panel.
 --
 -- Run ONCE in: Supabase Dashboard → SQL Editor → New query → Run

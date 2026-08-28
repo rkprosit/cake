@@ -1,5 +1,5 @@
 -- ============================================================
--- Sweet Crumbs Bakery — Custom weights & prices per cake
+-- Shweta's Sweet Atelier — Custom weights & prices per cake
 -- Run this ONCE in: Supabase Dashboard → SQL Editor → New query
 -- ============================================================
 

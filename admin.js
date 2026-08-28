@@ -1,4 +1,4 @@
-/* ===== Sweet Crumbs — Admin panel ===== */
+/* ===== Shweta's Sweet Atelier — Admin panel ===== */
 let sb = null;
 let cakes = [];
 let editingId = null;

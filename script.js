@@ -92,7 +92,7 @@ function entryOf(cake, label) {
 function waLink(cake, entry) {
   const imgUrl = cake.img.startsWith("http") ? cake.img : `${SITE_URL}/${cake.img}`;
   const text = encodeURIComponent(
-    `Hi Sweet Crumbs! I want to order:\n\n🎂 ${cake.name} (${entry.w}) — ${fmt(entry.price)}\n\nPhoto: ${imgUrl}\n\nPlease confirm availability.`
+    `Hi Shweta's Sweet Atelier! I want to order:\n\n🎂 ${cake.name} (${entry.w}) — ${fmt(entry.price)}\n\nPhoto: ${imgUrl}\n\nPlease confirm availability.`
   );
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${text}`;
 }
